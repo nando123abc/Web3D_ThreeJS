@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Virgen: Shaders demo</title>
+	<style>
+		body { margin: 0; padding: 0; font-size: 0; }
+		canvas { width: 90vw; height: 100%; }
+	</style>
+	<script src="./node_modules/three/build/three.min.js"></script>
+	<script src="./node_modules/three/build/three.module.js"></script>
+    <script src="./node_modules/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="./node_modules/three/examples/jsm/libs/dat.gui.module.js"></script>
+	<script src="./node_modules/three/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <script id="vertexShader" type="x-shader/x-vertex">
+	void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position.x+10.0, position.y, position.z+5.0, 1.0);
+    }
+  </script>
+  <script id="fragmentShader" type="x-shader/x-fragment">
+	void main() {
+        gl_FragColor = vec4(1.0, 0.78, 0.16, 1.0);
+    }
+  </script>
+  <script type="module">
+      import { GUI } from "./node_modules/three/examples/jsm/libs/dat.gui.module.js";
+        var WIDTH = window.innerWidth;
+        var HEIGHT = window.innerHeight;
+
+        var renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(WIDTH, HEIGHT);
+        renderer.setClearColor(0xDDDDDD, 1);
+        document.body.appendChild(renderer.domElement);
+
+        var scene = new THREE.Scene();
+
+        var camera = new THREE.PerspectiveCamera(40,window.innerWidth/window.innerHeight,1,5000);
+        camera.position.z = 100;
+        scene.add(camera);
+
+        var controls = new THREE.OrbitControls( camera, renderer.domElement );
+        controls.addEventListener('change', renderer);
+
+        //CUSTOM MESH
+        const loader = new THREE.GLTFLoader();
+        let customModel,pivot;//accessoutside
+        loader.load( './model/scene.gltf', function ( gltf ) {
+            const root = gltf.scene;
+            root.traverse((node) => {
+                if (!node.isMesh) return;
+                node.material.wireframe = true;
+            });
+            scene.add(root);
+            console.log(dumpObject(root).join('\n'));
+            customModel = root.getObjectByName('');
+            customModel.rotation.set(0.2, 0.9, 0);
+            // compute the box that contains all the stuff
+            // from root and below
+            const box = new THREE.Box3().setFromObject(root);
+            box.center(root.position);
+            root.position.multiplyScalar( - 1 );
+            const boxSize = box.getSize(new THREE.Vector3()).length();
+            const boxCenter = {x:0,y:0,z:0};//box.getCenter(new THREE.Vector3())
+            console.log(boxSize,boxCenter);
+            pivot = new THREE.Group();
+            scene.add( pivot );
+            pivot.add( root );
+            // set the camera to frame the box
+            frameArea(boxSize * 2, boxSize, boxCenter, camera);
+
+            // update the Trackball controls to handle the new size
+            controls.maxDistance = boxSize * 3;
+            controls.target.copy(boxCenter);
+            controls.update();
+        }, undefined, function ( error ) {
+            console.error( error );
+        } );
+
+        
+        const loaderTex = new THREE.CubeTextureLoader();
+		loaderTex.setPath( './Yoko_hdri/' );
+        let textureCube = loaderTex.load( [ 'posx.jpg', 'negx.jpg', 'posy.jpg', 'negy.jpg', 'posz.jpg', 'negz.jpg' ] );
+        textureCube.encoding = THREE.sRGBEncoding;
+
+        const textureLoader = new THREE.TextureLoader();
+
+        let textureEquirec = textureLoader.load( './Yoko_hdri/2294472375_24a3b8ef46_o.jpg' );
+        textureEquirec.mapping = THREE.EquirectangularReflectionMapping;
+        textureEquirec.encoding = THREE.sRGBEncoding;
+        scene.background = textureCube;
+
+        //LIGHT CREATION
+        var hlight = new THREE.AmbientLight (0x404040,5);
+        scene.add(hlight);
+        var light = new THREE.PointLight( 0xf2ebc7, 2, 100,2 );
+        var light2 = new THREE.PointLight( 0xf2ebc7, 3, 100,2 );
+        light.castShadow = true;
+        light2.castShadow = true;
+        light.position.set(-10, 20, 0);
+        light2.position.set(10, -20, 0);
+        scene.add(light,light2);
+        
+        //Light Helpers
+        const sphereSize = 1;
+        const pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
+        const pointLightHelper2 = new THREE.PointLightHelper( light2, sphereSize );
+        scene.add( pointLightHelper, pointLightHelper2);
+
+        //Default Start Background
+        scene.background = new THREE.Color( 0xffc725 );
+        const params = {
+            //Choice one (Cubed Texture)
+            Cube: function () {
+                scene.background = textureCube;
+
+                sphereMaterial.envMap = textureCube;
+                sphereMaterial.needsUpdate = true;
+            },
+            //Choice one (Equirectangular Texture)
+            Equirectangular: function () {
+                scene.background = textureEquirec;
+
+                sphereMaterial.envMap = textureEquirec;
+                sphereMaterial.needsUpdate = true;
+            },
+            //Choice one (Sold Color)
+            Solid: function () {
+                scene.background = new THREE.Color( 0xffc725 );
+
+                sphereMaterial.envMap = new THREE.Color( 0xffc725 );
+                sphereMaterial.needsUpdate = true;
+            }
+        };
+
+        //Create Simple GUI
+        const gui = new GUI();
+        gui.add( params,'Cube');
+        gui.add( params,'Equirectangular');
+        gui.add( params,'Solid');
+        gui.open();
+
+        window.addEventListener( 'resize', onWindowResize );
+        var t = 0;
+        function render(time) {
+            requestAnimationFrame(render);
+            time *= 0.001;  // convert to seconds
+            if (customModel) {
+                pivot.rotation.y += 0.01;
+                // for (const customObject of customModel.children) {
+                    // customObject.rotation.x = time;
+                // }
+            }
+            renderer.render(scene, camera);
+        }
+        render();
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+        }
+        function dumpObject(obj, lines = [], isLast = true, prefix = '') {
+            const localPrefix = isLast ? '└─' : '├─';
+            lines.push(`${prefix}${prefix ? localPrefix : ''}${obj.name || '*no-name*'} [${obj.type}]`);
+            const newPrefix = prefix + (isLast ? '  ' : '│ ');
+            const lastNdx = obj.children.length - 1;
+            obj.children.forEach((child, ndx) => {
+                const isLast = ndx === lastNdx;
+                dumpObject(child, lines, isLast, newPrefix);
+            });
+            return lines;
+        }
+        function frameArea(sizeToFitOnScreen, boxSize, boxCenter, camera) {
+            const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;
+            const halfFovY = THREE.MathUtils.degToRad(camera.fov * .5);
+            const distance = halfSizeToFitOnScreen / Math.tan(halfFovY);
+            // compute a unit vector that points in the direction the camera is now
+            // in the xz plane from the center of the box
+            const direction = (new THREE.Vector3())
+                .subVectors(camera.position, boxCenter)
+                .multiply(new THREE.Vector3(1, 0, 1))
+                .normalize();
+
+            // move the camera to a position distance units way from the center
+            // in whatever direction the camera was from the center already
+            camera.position.copy(direction.multiplyScalar(distance).add(boxCenter));
+
+            // pick some near and far values for the frustum that
+            // will contain the box.
+            camera.near = boxSize / 100;
+            camera.far = boxSize * 100;
+
+            camera.updateProjectionMatrix();
+
+            // point the camera to look at the center of the box
+            camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z);
+        }
+  </script>
+</body>
+</html>
