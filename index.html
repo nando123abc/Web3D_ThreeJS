@@ -51,7 +51,7 @@
             const root = gltf.scene;
             root.traverse((node) => {
                 if (!node.isMesh) return;
-                node.material.wireframe = true;
+                // node.material.wireframe = true;
             });
             scene.add(root);
             console.log(dumpObject(root).join('\n'));
@@ -137,10 +137,66 @@
 
         //Create Simple GUI
         const gui = new GUI();
-        gui.add( params,'Cube');
-        gui.add( params,'Equirectangular');
-        gui.add( params,'Solid');
+        const backgroundFolder = gui.addFolder('Background')
+        backgroundFolder.add( params,'Cube');
+        backgroundFolder.add( params,'Equirectangular');
+        backgroundFolder.add( params,'Solid');
+        var controls = new function() {
+            this.Rotation_Speed = 0.01;
+            this.Light1_Position = -10;
+            this.Light1_Color =  0xf2ebc7;
+            this.Light2_Position = 10;
+            this.Light2_Color =  0xf2ebc7;
+        }
+        gui.add(controls, 'Rotation_Speed', 0, 0.1);
+        gui.add(controls, 'Light1_Position', -10, 10);
+        gui.addColor(controls, 'Light1_Color');
+        gui.add(controls, 'Light2_Position', -10, 10);
+        gui.addColor(controls, 'Light2_Color');
         gui.open();
+//**********************************************************NEW LIGHT
+        class ColorGUIHelper {
+            constructor(object, prop) {
+            this.object = object;
+            this.prop = prop;
+            }
+            get value() {
+            return `#${this.object[this.prop].getHexString()}`;
+            }
+            set value(hexString) {
+            this.object[this.prop].set(hexString);
+            }
+        }
+
+        function makeXYZGUI(gui, vector3, name, onChangeFn) {
+            const folder = gui.addFolder(name);
+            folder.add(vector3, 'x', -10, 10).onChange(onChangeFn);
+            folder.add(vector3, 'y', 0, 10).onChange(onChangeFn);
+            folder.add(vector3, 'z', -10, 10).onChange(onChangeFn);
+            folder.open();
+        }
+
+        {
+            const color = 0xFFFFFF;
+            const intensity = 1;
+            const light = new THREE.PointLight(color, intensity);
+            light.position.set(0, 10, 0);
+            scene.add(light);
+
+            const helper = new THREE.PointLightHelper(light);
+            scene.add(helper);
+
+            function updateLight() {
+            helper.update();
+            }
+
+            const gui = new GUI();
+            gui.addColor(new ColorGUIHelper(light, 'color'), 'value').name('color');
+            gui.add(light, 'intensity', 0, 2, 0.01);
+            gui.add(light, 'distance', 0, 40).onChange(updateLight);
+
+            makeXYZGUI(gui, light.position, 'position');
+        }//**********************************************************NEW LIGHT
 
         window.addEventListener( 'resize', onWindowResize );
         var t = 0;
@@ -148,11 +204,15 @@
             requestAnimationFrame(render);
             time *= 0.001;  // convert to seconds
             if (customModel) {
-                pivot.rotation.y += 0.01;
+                pivot.rotation.y += controls.Rotation_Speed;
                 // for (const customObject of customModel.children) {
                     // customObject.rotation.x = time;
                 // }
             }
+            light.position.x=controls.Light1_Position;
+            light.Color=controls.Light1_Color;
+            light2.position.x=controls.Light2_Position;
+            light2.Color=controls.Light2_Color;
             renderer.render(scene, camera);
         }
         render();
