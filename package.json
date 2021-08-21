@@ -1,7 +1,7 @@
 {
   "name": "web3d_threejs",
   "version": "1.0.0",
-  "description": "threejs and glsl testing",
+  "description": "Threejs/glsl/hlsl/3dModel Testing",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,10 +12,9 @@
   },
   "keywords": [
     "threejs",
-    "3d",
-    "model",
     "glsl",
-    "visualization"
+    "hlsl",
+    "3dmodel"
   ],
   "author": "Fernando Rodriguez",
   "license": "ISC",
@@ -24,7 +23,7 @@
   },
   "homepage": "https://github.com/nando123abc/Web3D_ThreeJS#readme",
   "dependencies": {
-    "http-server": "^13.0.0",
+    "http-server": "^13.0.1",
     "three": "^0.131.3"
   }
 }

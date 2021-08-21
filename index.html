@@ -14,17 +14,6 @@
 	<script src="./node_modules/three/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
-
-  <script id="vertexShader" type="x-shader/x-vertex">
-	void main() {
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position.x+10.0, position.y, position.z+5.0, 1.0);
-    }
-  </script>
-  <script id="fragmentShader" type="x-shader/x-fragment">
-	void main() {
-        gl_FragColor = vec4(1.0, 0.78, 0.16, 1.0);
-    }
-  </script>
   <script type="module">
       import { GUI } from "./node_modules/three/examples/jsm/libs/dat.gui.module.js";
         var WIDTH = window.innerWidth;
@@ -95,19 +84,65 @@
         //LIGHT CREATION
         var hlight = new THREE.AmbientLight (0x404040,5);
         scene.add(hlight);
-        var light = new THREE.PointLight( 0xf2ebc7, 2, 100,2 );
-        var light2 = new THREE.PointLight( 0xf2ebc7, 3, 100,2 );
-        light.castShadow = true;
-        light2.castShadow = true;
-        light.position.set(-10, 20, 0);
-        light2.position.set(10, -20, 0);
-        scene.add(light,light2);
         
-        //Light Helpers
-        const sphereSize = 1;
-        const pointLightHelper = new THREE.PointLightHelper( light, sphereSize );
-        const pointLightHelper2 = new THREE.PointLightHelper( light2, sphereSize );
-        scene.add( pointLightHelper, pointLightHelper2);
+//**********************************************************NEW LIGHT
+        class ColorGUIHelper {
+            constructor(object, prop) {
+                this.object = object;
+                this.prop = prop;
+            }
+            get value() {
+                return `#${this.object[this.prop].getHexString()}`;
+            }
+            set value(hexString) {
+                this.object[this.prop].set(hexString);
+            }
+        }
+
+        function makeXYZGUI(folder,gui, vector3, name, onChangeFn) {
+            const sub_folder = folder.addFolder(name);
+            sub_folder.add(vector3, 'x', -10, 10).onChange(onChangeFn);
+            sub_folder.add(vector3, 'y', 0, 10).onChange(onChangeFn);
+            sub_folder.add(vector3, 'z', -10, 10).onChange(onChangeFn);
+            // folder.open();
+        }
+
+        
+            const light1_Color = 0xFFFFFF;
+            const light1_Intensity = 1;
+            const light1 = new THREE.PointLight(light1_Color, light1_Intensity);
+            light1.position.set(-10, 12, 0);
+
+            const light2_Color = 0xFAFADA;
+            const light2_Intensity = 2;
+            const light2 = new THREE.PointLight(light2_Color, light2_Intensity);
+            light2.position.set(10, -12, 0);
+
+            scene.add(light1,light2);
+
+            const helper = new THREE.PointLightHelper(light1);
+            const helper2 = new THREE.PointLightHelper(light2);
+            scene.add(helper,helper2);
+
+            function updateLight() {
+                helper.update();
+            }
+
+            const gui = new GUI();
+            const folder1 = gui.addFolder('Light1');
+            folder1.addColor(new ColorGUIHelper(light1, 'color'), 'value').name('Color');
+            folder1.add(light1, 'intensity', 0, 2, 0.01);
+
+            
+            const folder2 = gui.addFolder('Light2');
+            folder2.addColor(new ColorGUIHelper(light2, 'color'), 'value').name('Color');
+            folder2.add(light2, 'intensity', 0, 2, 0.01);
+            // gui.add(light, 'distance', 0, 40).onChange(updateLight);
+
+            makeXYZGUI(folder1,gui, light1.position, 'Position');
+            makeXYZGUI(folder2,gui, light2.position, 'Position');
+        
+
 
         //Default Start Background
         scene.background = new THREE.Color( 0xffc725 );
@@ -136,68 +171,19 @@
         };
 
         //Create Simple GUI
-        const gui = new GUI();
         const backgroundFolder = gui.addFolder('Background')
         backgroundFolder.add( params,'Cube');
         backgroundFolder.add( params,'Equirectangular');
         backgroundFolder.add( params,'Solid');
         var controls = new function() {
             this.Rotation_Speed = 0.01;
-            this.Light1_Position = -10;
-            this.Light1_Color =  0xf2ebc7;
-            this.Light2_Position = 10;
-            this.Light2_Color =  0xf2ebc7;
         }
         gui.add(controls, 'Rotation_Speed', 0, 0.1);
-        gui.add(controls, 'Light1_Position', -10, 10);
-        gui.addColor(controls, 'Light1_Color');
-        gui.add(controls, 'Light2_Position', -10, 10);
-        gui.addColor(controls, 'Light2_Color');
         gui.open();
-//**********************************************************NEW LIGHT
-        class ColorGUIHelper {
-            constructor(object, prop) {
-            this.object = object;
-            this.prop = prop;
-            }
-            get value() {
-            return `#${this.object[this.prop].getHexString()}`;
-            }
-            set value(hexString) {
-            this.object[this.prop].set(hexString);
-            }
-        }
 
-        function makeXYZGUI(gui, vector3, name, onChangeFn) {
-            const folder = gui.addFolder(name);
-            folder.add(vector3, 'x', -10, 10).onChange(onChangeFn);
-            folder.add(vector3, 'y', 0, 10).onChange(onChangeFn);
-            folder.add(vector3, 'z', -10, 10).onChange(onChangeFn);
-            folder.open();
-        }
 
-        {
-            const color = 0xFFFFFF;
-            const intensity = 1;
-            const light = new THREE.PointLight(color, intensity);
-            light.position.set(0, 10, 0);
-            scene.add(light);
 
-            const helper = new THREE.PointLightHelper(light);
-            scene.add(helper);
-
-            function updateLight() {
-            helper.update();
-            }
-
-            const gui = new GUI();
-            gui.addColor(new ColorGUIHelper(light, 'color'), 'value').name('color');
-            gui.add(light, 'intensity', 0, 2, 0.01);
-            gui.add(light, 'distance', 0, 40).onChange(updateLight);
-
-            makeXYZGUI(gui, light.position, 'position');
-        }//**********************************************************NEW LIGHT
-
+    
         window.addEventListener( 'resize', onWindowResize );
         var t = 0;
         function render(time) {
@@ -209,10 +195,10 @@
                     // customObject.rotation.x = time;
                 // }
             }
-            light.position.x=controls.Light1_Position;
-            light.Color=controls.Light1_Color;
-            light2.position.x=controls.Light2_Position;
-            light2.Color=controls.Light2_Color;
+            // light.position.x=controls.Light1_Position;
+            // light.Color=controls.Light1_Color;
+            // light2.position.x=controls.Light2_Position;
+            // light2.Color=controls.Light2_Color;
             renderer.render(scene, camera);
         }
         render();
