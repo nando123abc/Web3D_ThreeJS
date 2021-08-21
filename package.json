@@ -24,6 +24,7 @@
   "homepage": "https://github.com/nando123abc/Web3D_ThreeJS#readme",
   "dependencies": {
     "http-server": "^13.0.1",
+    "jquery": "^3.6.0",
     "three": "^0.131.3"
   }
 }
