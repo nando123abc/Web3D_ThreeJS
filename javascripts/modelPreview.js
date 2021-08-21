@@ -1,8 +1,7 @@
 import { GUI } from "../node_modules/three/examples/jsm/libs/dat.gui.module.js";
 jQuery(document).ready(function($) {
-    console.log(THREE);
     // Code using $ as usual goes here.
-    console.log('Hello there this seems to be the right file')
+    console.log(THREE);
     var WIDTH = window.innerWidth;
     var HEIGHT = window.innerHeight;
 
@@ -40,7 +39,7 @@ jQuery(document).ready(function($) {
         root.position.multiplyScalar( - 1 );
         const boxSize = box.getSize(new THREE.Vector3()).length();
         const boxCenter = {x:0,y:0,z:0};//box.getCenter(new THREE.Vector3())
-        // console.log(boxSize,boxCenter);
+        console.log(boxSize,boxCenter);
         pivot = new THREE.Group();
         scene.add( pivot );
         pivot.add( root );
@@ -49,11 +48,11 @@ jQuery(document).ready(function($) {
 
         // update the Trackball controls to handle the new size
         controls.maxDistance = boxSize * 3;
-        console.log(controls)
-        controls.target.copy(boxCenter);
-        controls.update();
+        /// console.log(controls.target)
+        /// controls.target.copy(boxCenter);
+        /// controls.update();
     }, undefined, function ( error ) {
-        // console.error( error );
+        console.error( error );
     } );
 
 
